@@ -134,14 +134,46 @@ By leveraging the comprehensive data collected through the Borbalo app, this pro
 
 ---
 
-
 # Midterm Report (November 5, 2024)
 
 [![Borbalo Data Analysis](https://img.youtube.com/vi/LXDBtRZ7g9Y/0.jpg)](https://www.youtube.com/watch?v=LXDBtRZ7g9Y)
 
 ## Initial Data Analysis Findings
 
-After exporting and analyzing approximately 500,000 traffic violation records from Borbalo's production database, several key insights and challenges have emerged:
+After exporting and analyzing approximately 500,000 traffic violation records from Borbalo's production database, several key insights and challenges have emerged. The initial data export took almost an hour due to the production database's size and load constraints. To minimize impact on the production system, I decided to work with this initial export rather than re-run the query with modifications for this report phase.
+
+### Data Export Process
+The following SQL query was used to export the data while implementing privacy measures:
+```sql
+SET TIME ZONE 'Asia/Tbilisi';
+COPY (
+SELECT 
+    REGEXP_REPLACE(REGEXP_REPLACE(external_id, '[A-Za-z]', 'X', 'g'), '[0-9]', '0', 'g') as "FineType",
+    agency as "Agency",
+    violation_date as "ViolationDate",
+    REGEXP_REPLACE(REGEXP_REPLACE(license_plate, '[A-Za-z]', 'X', 'g'), '[0-9]', '0', 'g') AS "LicensePlateTemplate",
+    (clean_license_plate !~ '^[A-Z]{2}[0-9]{3}[A-Z]{2}$' and clean_license_plate !~ '^[A-Z]{2}[0-9]{4}$') as "IsCustom",
+    ff.created_at as "ReceivedAt",
+    final_discount_date as "FinalDiscountDate",
+    final_payment_date as "FinalPaymentDate",
+    original_value as "OriginalAmount",
+    final_amount as "FinalAmount",
+    article as "Article",
+    REPLACE(REPLACE(fine_reason, E'\n', ''), E'\r', '') as "FineReasonText",
+    region_name as "Region",
+    raion_name as "Municipality",
+    has_media as "HasMedia",
+    city_coordinates as "CityCoords",
+    evacuated as "WasTowed",
+    evacuation_coordinates as "TowedFromCoords",
+    evacuation_end_date as "TowingEndDate",
+    evacuation_fee as "TowingFee",
+    evacuation_start_date as "TowingStartDate"
+FROM public.fines ff
+left join fine_cameras fc on fc.id = ff.camera_id
+order by ff.created_at
+) TO 'd:/borbalo_fines.csv' WITH (FORMAT CSV, HEADER);
+```
 
 ### Data Distribution and Representation Issues
 - Custom plates are significantly underrepresented in our sample (only 724 out of 502,451 records, or 0.14%)
@@ -173,6 +205,7 @@ REGEXP_REPLACE(REGEXP_REPLACE(license_plate, '[A-Za-z]', 'X', 'g'), '[0-9]', '0'
    - Research actual custom plate proportions in Georgia
    - Investigate and clean outlier data 
    - Develop more robust data validation processes
+   - Plan a more optimized data export strategy for the next phase
 
 ### Detailed Analysis and Visualization
 
@@ -184,6 +217,7 @@ A comprehensive walkthrough of the initial data analysis, including code and vis
    - Implement consistent vehicle identification system
    - Cross-reference with vehicle registration data for validation
    - Develop more sophisticated anonymization techniques
+   - Optimize data export process for future iterations
 
 2. **Analysis Expansion**:
    - Create temporal pattern analysis
@@ -195,8 +229,4 @@ A comprehensive walkthrough of the initial data analysis, including code and vis
    - Implement bias correction methods
    - Develop confidence intervals for key metrics
 
-The initial findings suggest that while our privacy measures are effective, they've created some analytical challenges that need to be addressed in the next phase of the project.
-
-
-
-
+The initial findings suggest that while our privacy measures are effective, they've created some analytical challenges that need to be addressed in the next phase of the project. Due to the production database constraints, these improvements will be implemented in subsequent data exports, carefully planned to minimize system impact.
