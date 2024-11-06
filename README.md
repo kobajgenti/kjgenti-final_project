@@ -135,80 +135,68 @@ By leveraging the comprehensive data collected through the Borbalo app, this pro
 ---
 
 
-## Midterm Report (November 5, 2024)
+# Midterm Report (November 5, 2024)
 
+[![Borbalo Data Analysis](https://img.youtube.com/vi/LXDBtRZ7g9Y/0.jpg)](https://www.youtube.com/watch?v=LXDBtRZ7g9Y)
 
-### Data Export and Processing
+## Initial Data Analysis Findings
 
-I've successfully exported part of the data from Borbalo's production database, capturing approximately 500 000 traffic violation records. The data extraction process was carefully designed to ensure privacy and security while maintaining analytical value.
+After exporting and analyzing approximately 500,000 traffic violation records from Borbalo's production database, several key insights and challenges have emerged:
 
-#### Data Export Process
+### Data Distribution and Representation Issues
+- Custom plates are significantly underrepresented in our sample (only 724 out of 502,451 records, or 0.14%)
+- This appears to be lower than the actual proportion in Georgia - need to validate against vehicle registration data  
+- Potential sampling bias needs to be addressed in our analysis
 
-The following SQL query was used to export the data while implementing privacy measures:
-
+### Privacy Measures Implemented
+Successfully implemented privacy-preserving data export using:
 ```sql
-SET TIME ZONE 'Asia/Tbilisi';
-COPY (
-SELECT 
-    REGEXP_REPLACE(REGEXP_REPLACE(external_id, '[A-Za-z]', 'X', 'g'), '[0-9]', '0', 'g') as "FineType",
-    agency as "Agency",
-    violation_date as "ViolationDate",
-    REGEXP_REPLACE(REGEXP_REPLACE(license_plate, '[A-Za-z]', 'X', 'g'), '[0-9]', '0', 'g') AS "LicensePlateTemplate",
-    (clean_license_plate !~ '^[A-Z]{2}[0-9]{3}[A-Z]{2}$' and clean_license_plate !~ '^[A-Z]{2}[0-9]{4}$') as "IsCustom",
-    ff.created_at as "ReceivedAt",
-    final_discount_date as "FinalDiscountDate",
-    final_payment_date as "FinalPaymentDate",
-    original_value as "OriginalAmount",
-    final_amount as "FinalAmount",
-    article as "Article",
-    REPLACE(REPLACE(fine_reason, E'\n', ''), E'\r', '') as "FineReasonText",
-    region_name as "Region",
-    raion_name as "Municipality",
-    has_media as "HasMedia",
-    city_coordinates as "CityCoords",
-    evacuated as "WasTowed",
-    evacuation_coordinates as "TowedFromCoords",
-    evacuation_end_date as "TowingEndDate",
-    evacuation_fee as "TowingFee",
-    evacuation_start_date as "TowingStartDate"
-FROM public.fines ff
-left join fine_cameras fc on fc.id = ff.camera_id
-order by ff.created_at
-) TO 'd:/borbalo_fines.csv' WITH (FORMAT CSV, HEADER);
+REGEXP_REPLACE(REGEXP_REPLACE(license_plate, '[A-Za-z]', 'X', 'g'), '[0-9]', '0', 'g') AS "LicensePlateTemplate"
 ```
 
-Key aspects of the data anonymization process:
-- License plates are templated by replacing letters with 'X' and numbers with '0'
-- Fine types (external IDs) are similarly templated to protect privacy
-- Custom plate identification is done through pattern matching
-- Temporal data is preserved for analysis purposes
-- Geographic coordinates are maintained for spatial analysis
+### Key Challenges Identified
 
+1. **Vehicle Identification**:
+   - Current templating system makes it difficult to track individual vehicles
+   - Need to implement a consistent hashing mechanism to maintain privacy while enabling per-vehicle statistics
+   - Planning to add unique vehicle identifiers while preserving anonymity
 
-#### Privacy Enhancement Plans
+2. **Data Quality**:
+   - Missing data analysis revealed significant gaps:
+     - 74.06% missing payment dates
+     - 21.22% missing discount dates  
+     - 12.41% missing regional data
+   - Need to investigate the reasons for these gaps
 
-After consulting with faculty members, I'm implementing additional privacy measures:
-1. Adding controlled noise to geographic coordinates to prevent exact location identification
-2. Implementing differential privacy techniques to protect against reverse engineering attempts
-3. Aggregating temporal data into broader time bins to reduce identifiability
-4. Creating synthetic data for sensitive patterns while maintaining statistical properties
+3. **Next Steps**:
+   - Implement vehicle tagging system for accurate per-car statistics
+   - Research actual custom plate proportions in Georgia
+   - Investigate and clean outlier data 
+   - Develop more robust data validation processes
 
-#### Next Steps
+### Detailed Analysis and Visualization
 
-1. **Data Cleaning**:
-   - Remove duplicate entries
-   - Handle missing values
-   - Standardize geographic coordinates
+A comprehensive walkthrough of the initial data analysis, including code and visualizations, can be found in the video above.
 
-2. **Advanced Analysis**:
-   - Implement time series analysis
-   - Develop spatial clustering models
-   - Create predictive models for fine likelihood
+## Future Work
 
-3. **Visualization Development**:
-   - Create interactive maps
-   - Generate temporal trend visualizations
-   - Design comparative analysis charts
+1. **Data Enhancement**:
+   - Implement consistent vehicle identification system
+   - Cross-reference with vehicle registration data for validation
+   - Develop more sophisticated anonymization techniques
+
+2. **Analysis Expansion**:
+   - Create temporal pattern analysis
+   - Develop geographic distribution models
+   - Analyze fine type distributions by plate category
+
+3. **Statistical Validation**:
+   - Compare sample distributions with population data
+   - Implement bias correction methods
+   - Develop confidence intervals for key metrics
+
+The initial findings suggest that while our privacy measures are effective, they've created some analytical challenges that need to be addressed in the next phase of the project.
+
 
 
 
