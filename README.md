@@ -133,3 +133,82 @@ To ensure the validity and reliability of my analysis, I will implement the foll
 By leveraging the comprehensive data collected through the Borbalo app, this project aims to provide a clear, evidence-based analysis of fine rates associated with custom and standard license plates in Georgia. Through rigorous statistical modeling and thoughtful visualization, I intend to debunk the existing myth and contribute valuable insights to traffic law enforcement practices and public perceptions.
 
 ---
+
+
+## Midterm Report (November 5, 2024)
+
+
+### Data Export and Processing
+
+I've successfully exported part of the data from Borbalo's production database, capturing approximately 500 000 traffic violation records. The data extraction process was carefully designed to ensure privacy and security while maintaining analytical value.
+
+#### Data Export Process
+
+The following SQL query was used to export the data while implementing privacy measures:
+
+```sql
+SET TIME ZONE 'Asia/Tbilisi';
+COPY (
+SELECT 
+    REGEXP_REPLACE(REGEXP_REPLACE(external_id, '[A-Za-z]', 'X', 'g'), '[0-9]', '0', 'g') as "FineType",
+    agency as "Agency",
+    violation_date as "ViolationDate",
+    REGEXP_REPLACE(REGEXP_REPLACE(license_plate, '[A-Za-z]', 'X', 'g'), '[0-9]', '0', 'g') AS "LicensePlateTemplate",
+    (clean_license_plate !~ '^[A-Z]{2}[0-9]{3}[A-Z]{2}$' and clean_license_plate !~ '^[A-Z]{2}[0-9]{4}$') as "IsCustom",
+    ff.created_at as "ReceivedAt",
+    final_discount_date as "FinalDiscountDate",
+    final_payment_date as "FinalPaymentDate",
+    original_value as "OriginalAmount",
+    final_amount as "FinalAmount",
+    article as "Article",
+    REPLACE(REPLACE(fine_reason, E'\n', ''), E'\r', '') as "FineReasonText",
+    region_name as "Region",
+    raion_name as "Municipality",
+    has_media as "HasMedia",
+    city_coordinates as "CityCoords",
+    evacuated as "WasTowed",
+    evacuation_coordinates as "TowedFromCoords",
+    evacuation_end_date as "TowingEndDate",
+    evacuation_fee as "TowingFee",
+    evacuation_start_date as "TowingStartDate"
+FROM public.fines ff
+left join fine_cameras fc on fc.id = ff.camera_id
+order by ff.created_at
+) TO 'd:/borbalo_fines.csv' WITH (FORMAT CSV, HEADER);
+```
+
+Key aspects of the data anonymization process:
+- License plates are templated by replacing letters with 'X' and numbers with '0'
+- Fine types (external IDs) are similarly templated to protect privacy
+- Custom plate identification is done through pattern matching
+- Temporal data is preserved for analysis purposes
+- Geographic coordinates are maintained for spatial analysis
+
+
+#### Privacy Enhancement Plans
+
+After consulting with faculty members, I'm implementing additional privacy measures:
+1. Adding controlled noise to geographic coordinates to prevent exact location identification
+2. Implementing differential privacy techniques to protect against reverse engineering attempts
+3. Aggregating temporal data into broader time bins to reduce identifiability
+4. Creating synthetic data for sensitive patterns while maintaining statistical properties
+
+#### Next Steps
+
+1. **Data Cleaning**:
+   - Remove duplicate entries
+   - Handle missing values
+   - Standardize geographic coordinates
+
+2. **Advanced Analysis**:
+   - Implement time series analysis
+   - Develop spatial clustering models
+   - Create predictive models for fine likelihood
+
+3. **Visualization Development**:
+   - Create interactive maps
+   - Generate temporal trend visualizations
+   - Design comparative analysis charts
+
+
+
